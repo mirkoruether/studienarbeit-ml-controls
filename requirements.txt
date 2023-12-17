@@ -1,0 +1,9 @@
+gymnasium[classic-control]
+pyglet
+pandas
+numpy
+scipy
+matplotlib
+seaborn
+plotly
+ipykernel
