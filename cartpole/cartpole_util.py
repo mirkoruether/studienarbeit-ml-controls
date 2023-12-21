@@ -11,7 +11,6 @@ from collections import OrderedDict
 import numpy as np
 import pandas as pd
 import gymnasium as gym
-import plotly.graph_objects as go
 
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
@@ -94,6 +93,7 @@ def render_cartpole_state(state: np.ndarray, pos_setpoint: float):
 
     return _render_cartpole_state(*state, pos_setpoint)
 
+
 def _render_cartpole_state(
     cart_pos: float,
     cart_vel: float,
@@ -109,41 +109,43 @@ def _render_cartpole_state(
     fig, ax = plt.subplots()
 
     # Cart
-    ax.add_patch(mpatches.Rectangle(
-        xy=(cart_pos - CART_WIDTH / 2.0, 0.0),
-        width=CART_WIDTH,
-        height=CART_HEIGHT,
-        color="black"
-    ))
+    ax.add_patch(
+        mpatches.Rectangle(
+            xy=(cart_pos - CART_WIDTH / 2.0, 0.0),
+            width=CART_WIDTH,
+            height=CART_HEIGHT,
+            color="black",
+        )
+    )
 
-    joint_xy = (cart_pos, CART_HEIGHT*0.75)
+    joint_xy = (cart_pos, CART_HEIGHT * 0.75)
 
     # Pole left half
-    ax.add_patch(mpatches.Rectangle(
-        xy=joint_xy,
-        width=-1.0 * POLE_WIDTH/2.0,
-        height=POLE_LENGTH,
-        angle=math.degrees(-1.0 * pole_ang),
-        color="brown"
-    ))
+    ax.add_patch(
+        mpatches.Rectangle(
+            xy=joint_xy,
+            width=-1.0 * POLE_WIDTH / 2.0,
+            height=POLE_LENGTH,
+            angle=math.degrees(-1.0 * pole_ang),
+            color="brown",
+        )
+    )
 
     # Pole right half
-    ax.add_patch(mpatches.Rectangle(
-        xy=joint_xy,
-        width=1.0 * POLE_WIDTH/2.0,
-        height=POLE_LENGTH,
-        angle=math.degrees(-1.0 * pole_ang),
-        color="brown"
-    ))
+    ax.add_patch(
+        mpatches.Rectangle(
+            xy=joint_xy,
+            width=1.0 * POLE_WIDTH / 2.0,
+            height=POLE_LENGTH,
+            angle=math.degrees(-1.0 * pole_ang),
+            color="brown",
+        )
+    )
 
     # Joint
-    ax.add_patch(mpatches.Circle(
-        xy=joint_xy,
-        radius=POLE_WIDTH*0.6,
-        color="grey"
-    ))
+    ax.add_patch(mpatches.Circle(xy=joint_xy, radius=POLE_WIDTH * 0.6, color="grey"))
 
-    ax.set_aspect('equal', adjustable='box')
+    ax.set_aspect("equal", adjustable="box")
     ax.set(xlim=(-1, 1), ylim=(-0.1, 1.5))
 
     return fig, ax
