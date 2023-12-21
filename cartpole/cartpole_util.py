@@ -13,6 +13,9 @@ import pandas as pd
 import gymnasium as gym
 import plotly.graph_objects as go
 
+import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
+
 
 class CartPoleAgentABC(abc.ABC):
     @abc.abstractmethod
@@ -30,7 +33,6 @@ def execute_cartpole(
     agent: CartPoleAgentABC,
     num_episodes: int = 20,
     num_steps: int = 500,
-    inital_state: typing.Optional[np.ndarray] = None,
     cartpos_setpoint: float | np.ndarray = 0.0,
 ) -> pd.DataFrame:
     env = None
@@ -41,9 +43,6 @@ def execute_cartpole(
             env_state, env_info = env.reset()
             env_reward = 0
             agent.reset()
-            if inital_state is not None:
-                env_state = inital_state
-                env.state = inital_state
 
             for t in range(num_steps):
                 curr_cartpos_setpoint = (
@@ -95,7 +94,6 @@ def render_cartpole_state(state: np.ndarray, pos_setpoint: float):
 
     return _render_cartpole_state(*state, pos_setpoint)
 
-
 def _render_cartpole_state(
     cart_pos: float,
     cart_vel: float,
@@ -104,42 +102,48 @@ def _render_cartpole_state(
     pos_setpoint: float = 0.0,
 ):
     CART_WIDTH = 0.5
-    CART_HEIGHT = 0.2
-    POLE_LENGTH = 0.5
+    CART_HEIGHT = 0.3
+    POLE_LENGTH = 1.0
+    POLE_WIDTH = 0.1
 
-    shapes = []
+    fig, ax = plt.subplots()
 
     # Cart
-    shapes.append(
-        dict(
-            type="rect",
-            x0=cart_pos - CART_WIDTH / 2.0,
-            x1=cart_pos + CART_WIDTH / 2.0,
-            y0=0,
-            y1=CART_HEIGHT,
-            fillcolor="black",
-        )
-    )
+    ax.add_patch(mpatches.Rectangle(
+        xy=(cart_pos - CART_WIDTH / 2.0, 0.0),
+        width=CART_WIDTH,
+        height=CART_HEIGHT,
+        color="black"
+    ))
 
-    x_tip = cart_pos + POLE_LENGTH * math.sin(pole_ang)
-    y_tip = CART_HEIGHT + POLE_LENGTH * math.cos(pole_ang)
+    joint_xy = (cart_pos, CART_HEIGHT*0.75)
 
-    # Pole
-    shapes.append(
-        dict(
-            type="line",
-            x0=cart_pos,
-            x1=x_tip,
-            y0=CART_HEIGHT,
-            y1=y_tip,
-            line=dict(width=3, color="brown"),
-        )
-    )
+    # Pole left half
+    ax.add_patch(mpatches.Rectangle(
+        xy=joint_xy,
+        width=-1.0 * POLE_WIDTH/2.0,
+        height=POLE_LENGTH,
+        angle=math.degrees(-1.0 * pole_ang),
+        color="brown"
+    ))
 
-    fig = go.Figure()
-    fig.update_yaxes(range=(-0.5, 2.0), fixedrange=True)
-    fig.update_xaxes(range=(-5.0, 5.0), fixedrange=True)
-    fig.update_layout(
-        shapes=shapes, margin=dict(t=5, l=5, r=5, b=5), height=300, template="none"
-    )
-    return fig
+    # Pole right half
+    ax.add_patch(mpatches.Rectangle(
+        xy=joint_xy,
+        width=1.0 * POLE_WIDTH/2.0,
+        height=POLE_LENGTH,
+        angle=math.degrees(-1.0 * pole_ang),
+        color="brown"
+    ))
+
+    # Joint
+    ax.add_patch(mpatches.Circle(
+        xy=joint_xy,
+        radius=POLE_WIDTH*0.6,
+        color="grey"
+    ))
+
+    ax.set_aspect('equal', adjustable='box')
+    ax.set(xlim=(-1, 1), ylim=(-0.1, 1.5))
+
+    return fig, ax
