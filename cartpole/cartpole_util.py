@@ -2,6 +2,7 @@
 Utils for execution of cartpole env
 """
 
+import math
 import abc
 import typing
 import json
@@ -10,7 +11,7 @@ from collections import OrderedDict
 import numpy as np
 import pandas as pd
 import gymnasium as gym
-import matplotlib.pyplot as plt
+import plotly.graph_objects as go
 
 
 class CartPoleAgentABC(abc.ABC):
@@ -45,9 +46,15 @@ def execute_cartpole(
                 env.state = inital_state
 
             for t in range(num_steps):
-                curr_cartpos_setpoint = cartpos_setpoint if np.isscalar(cartpos_setpoint) else cartpos_setpoint[t]
+                curr_cartpos_setpoint = (
+                    cartpos_setpoint
+                    if np.isscalar(cartpos_setpoint)
+                    else cartpos_setpoint[t]
+                )
 
-                action, agent_log_dict = agent.step(env_state, env_reward, curr_cartpos_setpoint)
+                action, agent_log_dict = agent.step(
+                    env_state, env_reward, curr_cartpos_setpoint
+                )
                 env_state, env_reward, terminated, truncated, env_info = env.step(
                     action
                 )
@@ -76,13 +83,63 @@ def execute_cartpole(
         if env is not None:
             env.close()
 
-def render_cartpole_state(state:np.ndarray, pos_setpoint:float):
+
+def render_cartpole_state(state: np.ndarray, pos_setpoint: float):
     # ToDo: Implment own rendering based on matplotlib etc.
     # Should be much faster and can also visualize velocities and pos setpoint
 
-    env = gym.make("CartPole-v1", render_mode="rgb_array")
-    env.reset()
-    env.state = state
-    pixels = env.render()
+    # env = gym.make("CartPole-v1", render_mode="rgb_array")
+    # env.reset()
+    # env.state = state
+    # pixels = env.render()
 
-    return plt.imshow(pixels)
+    return _render_cartpole_state(*state, pos_setpoint)
+
+
+def _render_cartpole_state(
+    cart_pos: float,
+    cart_vel: float,
+    pole_ang: float,
+    pole_vel: float,
+    pos_setpoint: float = 0.0,
+):
+    CART_WIDTH = 0.5
+    CART_HEIGHT = 0.2
+    POLE_LENGTH = 0.5
+
+    shapes = []
+
+    # Cart
+    shapes.append(
+        dict(
+            type="rect",
+            x0=cart_pos - CART_WIDTH / 2.0,
+            x1=cart_pos + CART_WIDTH / 2.0,
+            y0=0,
+            y1=CART_HEIGHT,
+            fillcolor="black",
+        )
+    )
+
+    x_tip = cart_pos + POLE_LENGTH * math.sin(pole_ang)
+    y_tip = CART_HEIGHT + POLE_LENGTH * math.cos(pole_ang)
+
+    # Pole
+    shapes.append(
+        dict(
+            type="line",
+            x0=cart_pos,
+            x1=x_tip,
+            y0=CART_HEIGHT,
+            y1=y_tip,
+            line=dict(width=3, color="brown"),
+        )
+    )
+
+    fig = go.Figure()
+    fig.update_yaxes(range=(-0.5, 2.0), fixedrange=True)
+    fig.update_xaxes(range=(-5.0, 5.0), fixedrange=True)
+    fig.update_layout(
+        shapes=shapes, margin=dict(t=5, l=5, r=5, b=5), height=300, template="none"
+    )
+    return fig

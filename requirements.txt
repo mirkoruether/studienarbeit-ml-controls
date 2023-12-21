@@ -8,3 +8,6 @@ seaborn
 plotly
 ipykernel
 ipywidgets
+nbformat
+jupyter
+notebook
