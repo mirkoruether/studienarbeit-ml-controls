@@ -25,8 +25,19 @@ class CartPoleAgentABC(abc.ABC):
 
     @abc.abstractmethod
     def step(
-        self, env_state: np.ndarray, env_reward: float, cartpos_setpoint: float
+        self, env_state: np.ndarray, cartpos_setpoint: float
     ) -> typing.Tuple[int, typing.Dict[str, object]]:
+        pass
+
+    @abc.abstractmethod
+    def after_step(
+        self,
+        old_env_state: np.ndarray,
+        new_env_state: np.ndarray,
+        cartpos_setpoint: float,
+        action: int,
+        env_reward: float,
+    ) -> None:
         pass
 
 
@@ -52,11 +63,15 @@ def execute_cartpole(
                     else cartpos_setpoint[t]
                 )
 
-                action, agent_log_dict = agent.step(
-                    env_state, env_reward, curr_cartpos_setpoint
-                )
+                action, agent_log_dict = agent.step(env_state, curr_cartpos_setpoint)
+
+                old_env_state = env_state
                 env_state, env_reward, terminated, truncated, env_info = env.step(
                     action
+                )
+
+                agent.after_step(
+                    old_env_state, env_state, cartpos_setpoint, action, env_reward
                 )
 
                 step_log_dict = OrderedDict()
