@@ -15,6 +15,8 @@ import gymnasium as gym
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 
+from plotly.subplots import make_subplots
+
 
 class CartPoleAgentABC(abc.ABC):
     @abc.abstractmethod
@@ -82,16 +84,14 @@ def execute_cartpole(
             env.close()
 
 
-def render_cartpole_state(state: np.ndarray, pos_setpoint: float):
-    # ToDo: Implment own rendering based on matplotlib etc.
-    # Should be much faster and can also visualize velocities and pos setpoint
-
-    # env = gym.make("CartPole-v1", render_mode="rgb_array")
-    # env.reset()
-    # env.state = state
-    # pixels = env.render()
-
-    return _render_cartpole_state(*state, pos_setpoint)
+def render_cartpole_state(row: pd.Series):
+    return _render_cartpole_state(
+        row["cart_pos"],
+        row["cart_vel"],
+        row["pole_ang"],
+        row["pole_vel"],
+        row["cart_pos_setpoint"],
+    )
 
 
 def _render_cartpole_state(
@@ -149,3 +149,31 @@ def _render_cartpole_state(
     ax.set(xlim=(-1, 1), ylim=(-0.1, 1.5))
 
     return fig, ax
+
+
+def lineplot(df, ep=None):
+    if ep is not None:
+        df = df.loc[df["ep"] == ep]
+
+    fig = make_subplots(rows=4, cols=1, shared_xaxes=True, vertical_spacing=0.02)
+
+    t = df["t"]
+
+    def trace(name, row):
+        fig.add_scatter(x=t, y=df[name], name=name, showlegend=False, row=row, col=1)
+        fig.update_yaxes(row=row, title_text=name)
+
+    trace("cart_pos", 1)
+    trace("cart_vel", 2)
+    trace("pole_ang", 3)
+    trace("pole_vel", 4)
+
+    fig.update_xaxes(rangeslider_visible=True, row=4)
+    fig.update_layout(
+        hovermode="x unified",
+        template="none",
+        margin=dict(l=60, r=10, t=10, b=10),
+        height=700,
+    )
+
+    return fig
