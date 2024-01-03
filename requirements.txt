@@ -12,3 +12,7 @@ nbformat
 jupyter
 notebook
 PyQt5
+ray[rllib]
+torch
+stable-baselines3
+scikit-learn

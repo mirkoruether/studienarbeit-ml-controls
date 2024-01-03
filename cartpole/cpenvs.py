@@ -7,6 +7,7 @@ from math import nan
 import random
 from typing import Any, SupportsFloat
 import numpy as np
+import pandas as pd
 import gymnasium as gym
 
 
@@ -24,11 +25,11 @@ class _CartPoleCommon(gym.Env, abc.ABC):
         super().reset(seed=seed, options=options)  # Sets seed
         inner_state, info = self.inner.reset()
         self.t = 0
-        self.log = np.zeros((501, 5))
+        self.log = np.zeros((501, 6))
 
         state, reward = self.calc_state_and_reward(inner_state, nan)
 
-        self.log[self.t, :] = np.hstack(state, reward)
+        self.log[self.t, :] = np.concatenate([state, np.array([reward])])
 
         return state, info
 
@@ -46,7 +47,7 @@ class _CartPoleCommon(gym.Env, abc.ABC):
 
         state, reward = self.calc_state_and_reward(inner_state, inner_reward)
 
-        self.log[self.t, :] = np.hstack(state, reward)
+        self.log[self.t, :] = np.concatenate([state, np.array([reward])])
 
         return state, reward, terminated, truncated, info
 
@@ -58,12 +59,27 @@ class _CartPoleCommon(gym.Env, abc.ABC):
             self.inner.close()
             self.inner = None
 
+    def log_to_df(self):
+        df = pd.DataFrame(
+            self.log[: self.t + 1],
+            columns=[
+                "cart_pos",
+                "cart_vel",
+                "pole_ang",
+                "pole_vel",
+                "pos_deviation",
+                "reward",
+            ],
+        )
+        df.index.name = "t"
+        return df
+
 
 class StandardCartPoleEnv(_CartPoleCommon):
     def calc_state_and_reward(
         self, inner_state: np.ndarray, inner_reward: np.ndarray
     ) -> tuple[np.ndarray, float]:
-        return np.concatenate([inner_state, inner_state[0]]), inner_reward
+        return np.concatenate([inner_state, np.array([inner_state[0]])]), inner_reward
 
 
 class MovingCartpoleEnv(_CartPoleCommon):
@@ -81,7 +97,7 @@ class MovingCartpoleEnv(_CartPoleCommon):
         distance = self.calc_distance(inner_state)
         dist_reward = max(0.0, 1.0 - (distance * distance))
 
-        return np.concatenate([inner_state, distance]), (
+        return np.concatenate([inner_state, np.array([distance])]), (
             dist_reward + inner_reward
         ) / 2.0
 
@@ -89,7 +105,7 @@ class MovingCartpoleEnv(_CartPoleCommon):
         return inner_state[0] - self.setpoints[self.t]
 
     def generate_setpoints(self):
-        sp = np.zeros((500,))
+        sp = np.zeros((501,))
 
         t1 = random.randint(50, 150)  # Around t=100
         t2 = random.randint(200, 300)  # Around t=250

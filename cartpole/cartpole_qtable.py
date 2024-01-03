@@ -3,19 +3,19 @@ Agent for Reinforcement learning using qtable
 """
 
 import random
-from typing import Dict, Tuple
 import numpy as np
 import numpy.random as nprnd
-import cartpole_util
+import cpagent
 
 
-class QTableAgent(cartpole_util.CartPoleAgentABC):
+class QTableAgent(cpagent.CartPoleAgentABC):
     def __init__(self, alpha=0.1, epsilon=0.9, gamma=0.9) -> None:
         self.bins = [
             np.array([-0.1, 0.0, 0.1]),  # Cartpos
             np.array([-0.5, 0.0, 0.5]),  # Cartvel
             np.array([-0.03, -0.02, -0.01, 0.0, 0.01, 0.02, 0.03]),  # Poleang
             np.array([-0.6, -0.2, 0.0, 0.2, 0.6]),  # Polevel
+            np.array([]), # Pos deviation => ignore
         ]
 
         self.alpha = alpha  # Learning factor
@@ -26,7 +26,8 @@ class QTableAgent(cartpole_util.CartPoleAgentABC):
 
     def init_qtable(self):
         shape = (self.get_state_size(), 2)
-        self.qtable = nprnd.normal(0.1, 0.02, shape)
+        # self.qtable = nprnd.normal(0.1, 0.02, shape)
+        self.qtable = np.zeros(shape)
 
     def idx(self, env_state):
         factor = 1
@@ -47,12 +48,9 @@ class QTableAgent(cartpole_util.CartPoleAgentABC):
     def reset(self) -> None:
         pass
 
-    def step(
-        self, env_state: np.ndarray, cartpos_setpoint: float
-    ) -> Tuple[int, Dict[str, object]]:
+    def step(self, env_state: np.ndarray) -> int:
         state_idx = self.idx(env_state)
-
-        return self._step_inner(state_idx), {"s_idx": state_idx}
+        return self._step_inner(state_idx)
 
     def _step_inner(self, state_idx: int):
         if random.random() < self.epsilon:
@@ -65,7 +63,6 @@ class QTableAgent(cartpole_util.CartPoleAgentABC):
         self,
         old_env_state: np.ndarray,
         new_env_state: np.ndarray,
-        cartpos_setpoint: float,
         action: int,
         env_reward: float,
     ) -> None:
