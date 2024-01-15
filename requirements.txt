@@ -14,5 +14,9 @@ notebook
 PyQt5
 ray[rllib]
 torch
-stable-baselines3
+stable-baselines3[extra]
 scikit-learn
+tensorboard
+torch-tb-profiler
+optuna
+optuna-dashboard

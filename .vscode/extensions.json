@@ -1,0 +1,10 @@
+{
+    "recommendations": [
+        "ms-toolsai.tensorboard",
+        "ms-toolsai.jupyter",
+        "charliermarsh.ruff",
+        "ms-python.vscode-pylance",
+        "ms-python.python",
+        "optuna.optuna-dashboard"
+    ]
+}

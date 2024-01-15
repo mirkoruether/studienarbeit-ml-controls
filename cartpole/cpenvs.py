@@ -18,6 +18,12 @@ class _CartPoleCommon(gym.Env, abc.ABC):
 
     def __init__(self) -> None:
         self.inner = gym.make("CartPole-v1")
+        self.action_space = self.inner.action_space
+
+        inner_high = self.inner.observation_space.high
+        # Reuse cart pos limit for position deviation
+        high = np.concatenate([inner_high, np.array([inner_high[0]])]) 
+        self.observation_space = gym.spaces.Box(-high, high, dtype=np.float32)
 
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
@@ -72,6 +78,7 @@ class _CartPoleCommon(gym.Env, abc.ABC):
             ],
         )
         df.index.name = "t"
+        df["cart_pos_setpoint"] = df["cart_pos"] - df["pos_deviation"]
         return df
 
 

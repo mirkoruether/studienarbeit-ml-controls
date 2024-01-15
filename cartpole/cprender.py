@@ -3,7 +3,6 @@ Util functions for rendering cartpole state (e.g. in Jupyter Notebook)
 """
 
 
-
 import math
 import numpy as np
 import pandas as pd
@@ -12,6 +11,16 @@ import matplotlib.patches as mpatches
 
 from plotly.subplots import make_subplots
 
+def render_cartpole_state_df(df: pd.DataFrame, t: int, ep:int =None):
+    if ep is not None:
+        dff = df.loc[(df["ep"] == ep) & (df["t"] == t)]
+    else:
+        dff = df.loc[df["t"] == t]
+
+    if dff.shape[0] != 1:
+        return
+
+    return render_cartpole_state(dff.iloc[0])
 
 def render_cartpole_state(row: pd.Series):
     return _render_cartpole_state(
@@ -19,8 +28,9 @@ def render_cartpole_state(row: pd.Series):
         row["cart_vel"],
         row["pole_ang"],
         row["pole_vel"],
-        row["cart_pos_setpoint"] if ("cart_pos_setpoint" in row) else row["cart_pos"] - row["pos_deviation"],
+        row["cart_pos_setpoint"],
     )
+
 
 def _render_cartpole_state(
     cart_pos: float,
@@ -74,7 +84,7 @@ def _render_cartpole_state(
     ax.add_patch(mpatches.Circle(xy=joint_xy, radius=POLE_WIDTH * 0.6, color="grey"))
 
     ax.set_aspect("equal", adjustable="box")
-    ax.set(xlim=(-1, 1), ylim=(-0.1, 1.5))
+    ax.set(xlim=(-1.5, 1.5), ylim=(-0.1, 1.5))
 
     return fig, ax
 
@@ -88,10 +98,23 @@ def lineplot(df, ep=None):
     t = df["t"]
 
     def trace(name, row):
-        fig.add_scatter(x=t, y=df[name], name=name, showlegend=False, row=row, col=1)
+        fig.add_scatter(
+            x=t, y=df[name], name=name, showlegend=False, mode="lines", row=row, col=1
+        )
         fig.update_yaxes(row=row, title_text=name)
 
     trace("cart_pos", 1)
+    fig.add_scatter(
+        x=t,
+        y=df["cart_pos_setpoint"],
+        mode="lines",
+        name="cart_pos_setpoint",
+        showlegend=False,
+        row=1,
+        col=1,
+        line=dict(dash="dash", color="black"),
+    )
+
     trace("cart_vel", 2)
     trace("pole_ang", 3)
     trace("pole_vel", 4)

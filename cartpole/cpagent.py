@@ -4,20 +4,18 @@ Utils for execution of cartpole env
 
 import abc
 import typing
-import json
-from collections import OrderedDict
-
-from typing import Any, Dict, Tuple, SupportsFloat
-
 import numpy as np
 import pandas as pd
 import gymnasium as gym
 
+import stable_baselines3.common.base_class as sb_classes
+
 import cpenvs
 
 
+
+
 class CartPoleAgentABC(abc.ABC):
-    @abc.abstractmethod
     def reset(self) -> None:
         pass
 
@@ -25,7 +23,6 @@ class CartPoleAgentABC(abc.ABC):
     def step(self, env_state: np.ndarray) -> int:
         pass
 
-    @abc.abstractmethod
     def after_step(
         self,
         old_env_state: np.ndarray,
@@ -35,6 +32,14 @@ class CartPoleAgentABC(abc.ABC):
     ) -> None:
         pass
 
+# Use for execution only, not training
+class ModelCartPoleAgent(CartPoleAgentABC):
+    def __init__(self, model: sb_classes.BaseAlgorithm) -> None:
+        self.model = model
+
+    def step(self, env_state: np.ndarray) -> int:
+        action, _ = self.model.predict(env_state, deterministic=True)
+        return action
 
 def execute_cartpole(
     agent: CartPoleAgentABC,
