@@ -3,6 +3,7 @@ Modified cartpole with changing setpoint for cart position
 """
 
 import abc
+import math
 from math import nan
 import random
 from typing import Any, SupportsFloat
@@ -10,6 +11,63 @@ import numpy as np
 import pandas as pd
 import gymnasium as gym
 
+
+# Taken from gymnasium implementation
+_gravity = 9.8
+_masscart = 1.0
+_masspole = 0.1
+_total_mass = _masscart + _masspole
+_length = 0.5  # actually half the pole's length
+_polemass_length = _masspole * _length
+_force_mag = 10.0
+_tau = 0.02  # seconds between state updates
+_kinematics_integrator = "euler"
+
+# Angle at which to fail the episode
+_theta_threshold_radians = 12 * 2 * math.pi / 360
+_x_threshold = 2.4
+
+
+def cartpolepole_simstep(state, force):
+    """
+    Taken from gymnasium implementation
+    """
+
+    x, x_dot, theta, theta_dot = tuple(state)
+    costheta = math.cos(theta)
+    sintheta = math.sin(theta)
+
+    # For the interested reader:
+    # https://coneural.org/florian/papers/05_cart_pole.pdf
+    temp = (
+        force + _polemass_length * theta_dot**2 * sintheta
+    ) / _total_mass
+    thetaacc = (_gravity * sintheta - costheta * temp) / (
+        _length * (4.0 / 3.0 - _masspole * costheta**2 / _total_mass)
+    )
+    xacc = temp - _polemass_length * thetaacc * costheta / _total_mass
+
+    if _kinematics_integrator == "euler":
+        x = x + _tau * x_dot
+        x_dot = x_dot + _tau * xacc
+        theta = theta + _tau * theta_dot
+        theta_dot = theta_dot + _tau * thetaacc
+    else:  # semi-implicit euler
+        x_dot = x_dot + _tau * xacc
+        x = x + _tau * x_dot
+        theta_dot = theta_dot + _tau * thetaacc
+        theta = theta + _tau * theta_dot
+
+    return np.array((x, x_dot, theta, theta_dot), dtype=np.float32)
+
+def check_terminate(state):
+    x, x_dot, theta, theta_dot = tuple(state)
+    return bool(
+            x < -_x_threshold
+            or x > _x_threshold
+            or theta < -_theta_threshold_radians
+            or theta > _theta_threshold_radians
+        )
 
 class _CartPoleCommon(gym.Env, abc.ABC):
     inner: gym.Env = None
@@ -87,6 +145,21 @@ class StandardCartPoleEnv(_CartPoleCommon):
         self, inner_state: np.ndarray, inner_reward: np.ndarray
     ) -> tuple[np.ndarray, float]:
         return np.concatenate([inner_state, np.array([inner_state[0]])]), inner_reward
+
+class RiskyCartPoleEnv(_CartPoleCommon):
+    def calc_state_and_reward(
+        self, inner_state: np.ndarray, inner_reward: np.ndarray
+    ) -> tuple[np.ndarray, float]:
+        
+        angle = abs(inner_state[2])
+        desired_angle = 0.04
+        difference = abs(angle - desired_angle)
+
+        angle_reward = max(0, 1.0 - difference/0.04)
+
+        reward = 0.3 * inner_reward + 0.7 * angle_reward
+
+        return np.concatenate([inner_state, np.array([inner_state[0]])]), reward
 
 
 class MovingCartpoleEnv(_CartPoleCommon):
