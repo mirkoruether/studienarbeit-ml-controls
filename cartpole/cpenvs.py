@@ -28,7 +28,35 @@ _theta_threshold_radians = 12 * 2 * math.pi / 360
 _x_threshold = 2.4
 
 
-def cartpolepole_simstep(state, force):
+_high = np.array([
+    _x_threshold * 2,
+    8.0, # Cart speed
+    _theta_threshold_radians * 2,
+    4.0, # Pole angle velocity
+],dtype=np.float32)
+_high2 = np.concatenate([_high, _high[0:1]]) # Reuse cart pos limit for position deviation
+
+_norm = np.array([
+    _x_threshold,
+    4.0, # Cart speed
+    _theta_threshold_radians,
+    2.0, # Pole angle velocity
+],dtype=np.float32)
+_norm2 = np.concatenate([_norm, _norm[0:1]])
+
+def normalize_state(state:np.ndarray):
+    if state.shape[0] == 4:
+        return state / _norm
+    elif state.shape[0] == 5:
+        return state / _norm2
+    
+def denormalize_state(norm_state: np.ndarray):
+    if norm_state.shape[0] == 4:
+        return norm_state * _norm
+    elif norm_state.shape[0] == 5:
+        return norm_state * _norm2
+
+def cartpole_simstep(state:np.ndarray, force:float):
     """
     Taken from gymnasium implementation
     """
@@ -70,32 +98,36 @@ def check_terminate(state):
         )
 
 class _CartPoleCommon(gym.Env, abc.ABC):
-    inner: gym.Env = None
+    innerstate: np.ndarray
     t: int = 0
+    max_episode_t:int = 500
     log: np.ndarray = None
 
-    def __init__(self) -> None:
-        self.inner = gym.make("CartPole-v1")
-        self.action_space = self.inner.action_space
+    # Gives the agent a normalized state vector (values ca. in [-1;1])
+    use_normalized_state:bool = False
 
-        inner_high = self.inner.observation_space.high
-        # Reuse cart pos limit for position deviation
-        high = np.concatenate([inner_high, np.array([inner_high[0]])]) 
-        self.observation_space = gym.spaces.Box(-high, high, dtype=np.float32)
+    def __init__(self, use_normalized_state:bool=False) -> None:
+        self.use_normalized_state = use_normalized_state
+        self.action_space = gym.spaces.Discrete(2)
+        self.observation_space = gym.spaces.Box(-_high2, _high2, dtype=np.float32)
 
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[Any, dict[str, Any]]:
         super().reset(seed=seed, options=options)  # Sets seed
-        inner_state, info = self.inner.reset()
+
+        self.innerstate = self.np_random.uniform(-0.05, 0.05, size=(4,))
         self.t = 0
         self.log = np.zeros((501, 6))
 
-        state, reward = self.calc_state_and_reward(inner_state, nan)
+        state, reward = self.calc_state_and_reward(self.innerstate, nan)
 
         self.log[self.t, :] = np.concatenate([state, np.array([reward])])
 
-        return state, info
+        if self.use_normalized_state:
+            return normalize_state(state), {}
+        else:
+            return state, {}
 
     @abc.abstractmethod
     def calc_state_and_reward(
@@ -106,22 +138,27 @@ class _CartPoleCommon(gym.Env, abc.ABC):
     def step(
         self, action: Any
     ) -> tuple[Any, SupportsFloat, bool, bool, dict[str, Any]]:
-        inner_state, inner_reward, terminated, truncated, info = self.inner.step(action)
         self.t = self.t + 1
+        force = 10.0 if action == 1 else -10.0
+        self.innerstate = cartpole_simstep(self.innerstate, force)
 
-        state, reward = self.calc_state_and_reward(inner_state, inner_reward)
+        terminated = check_terminate(self.innerstate)
+        inner_reward = 1.0 if not terminated else 0.0
+        truncated = self.t >= self.max_episode_t
+
+        state, reward = self.calc_state_and_reward(self.innerstate, inner_reward)
 
         self.log[self.t, :] = np.concatenate([state, np.array([reward])])
 
-        return state, reward, terminated, truncated, info
+        if self.use_normalized_state:
+            return normalize_state(state), reward, terminated, truncated, {}
+        return state, reward, terminated, truncated, {}
 
     def render(self) -> None:
         return None
 
     def close(self):
-        if self.inner is not None:
-            self.inner.close()
-            self.inner = None
+        pass
 
     def log_to_df(self):
         df = pd.DataFrame(

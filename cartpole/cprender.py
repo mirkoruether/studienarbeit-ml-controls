@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
+import matplotlib.axes as maxes
 
 from plotly.subplots import make_subplots
 
@@ -37,7 +38,7 @@ def _render_cartpole_state(
     cart_vel: float,
     pole_ang: float,
     pole_vel: float,
-    pos_setpoint: float = 0.0,
+    pos_setpoint: float = None,
 ):
     CART_WIDTH = 0.5
     CART_HEIGHT = 0.3
@@ -45,6 +46,7 @@ def _render_cartpole_state(
     POLE_WIDTH = 0.1
 
     fig, ax = plt.subplots()
+    ax:maxes.Axes = ax
 
     # Cart
     ax.add_patch(
@@ -83,17 +85,20 @@ def _render_cartpole_state(
     # Joint
     ax.add_patch(mpatches.Circle(xy=joint_xy, radius=POLE_WIDTH * 0.6, color="grey"))
 
+    if pos_setpoint is not None:
+        ax.arrow(pos_setpoint, -0.25, 0, 0.1, width=2e-2)
+
     ax.set_aspect("equal", adjustable="box")
-    ax.set(xlim=(-1.5, 1.5), ylim=(-0.1, 1.5))
+    ax.set(xlim=(-1.5, 1.5), ylim=(-0.3, 1.5))
 
     return fig, ax
 
 
-def lineplot(df, ep=None):
+def lineplot(df, ep=None, incl_velo=False):
     if ep is not None:
         df = df.loc[df["ep"] == ep]
 
-    fig = make_subplots(rows=4, cols=1, shared_xaxes=True, vertical_spacing=0.02)
+    fig = make_subplots(rows=4 if incl_velo else 2, cols=1, shared_xaxes=True, vertical_spacing=0.02)
 
     t = df["t"]
 
@@ -115,16 +120,19 @@ def lineplot(df, ep=None):
         line=dict(dash="dash", color="black"),
     )
 
-    trace("cart_vel", 2)
-    trace("pole_ang", 3)
-    trace("pole_vel", 4)
+    if incl_velo:
+        trace("cart_vel", 2)
+        trace("pole_ang", 3)
+        trace("pole_vel", 4)
+    else:
+        trace("pole_ang", 2)
 
-    fig.update_xaxes(rangeslider_visible=True, row=4)
+    fig.update_xaxes(rangeslider_visible=True, row=4 if incl_velo else 2)
     fig.update_layout(
         hovermode="x unified",
         template="none",
         margin=dict(l=60, r=10, t=10, b=10),
-        height=700,
+        height=700 if incl_velo else 400,
     )
 
     return fig

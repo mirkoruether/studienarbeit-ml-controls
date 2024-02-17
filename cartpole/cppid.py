@@ -43,8 +43,8 @@ class PidAgent(cpagent.CartPoleAgentABC):
         self.controller_pole.reset()
         self.controller_cart.reset()
 
-    def step(self, env_state: np.ndarray) -> int:
-        delta_t = 1.0
+    def calcpid(self, env_state: np.ndarray) -> float:
+        delta_t = 0.02
 
         error_pole = 0.0 - env_state[2]
         error_cart = 0.0 - env_state[4]
@@ -52,8 +52,13 @@ class PidAgent(cpagent.CartPoleAgentABC):
         pid_pole = self.controller_pole.step(error_pole, delta_t)
         pid_cart = self.controller_cart.step(error_cart, delta_t)
 
-        pid = pid_cart + pid_pole
+        return pid_cart + pid_pole
 
+    def step(self, env_state: np.ndarray) -> int:
+        pid = self.calcpid(env_state)
         action = 0 if pid >= 0 else 1
-
         return action
+
+class PidAgentCont(PidAgent):
+    def step(self, env_state: np.ndarray) -> int:
+        return np.clip(self.calcpid(env_state), -10.0, 10.0)

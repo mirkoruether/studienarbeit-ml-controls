@@ -75,7 +75,7 @@ class QTableAgent(cpagent.CartPoleAgentABC):
         old_val = self.qtable[old_state_idx, action]
 
         new_val = old_val + self.alpha * (
-            env_reward + self.gamma * np.max(self.qtable[new_state_idx, :] - old_val)
+            env_reward + self.gamma * np.max(self.qtable[new_state_idx, :])
         )
 
         self.qtable[old_state_idx, action] = new_val
