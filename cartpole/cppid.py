@@ -61,4 +61,4 @@ class PidAgent(cpagent.CartPoleAgentABC):
 
 class PidAgentCont(PidAgent):
     def step(self, env_state: np.ndarray) -> int:
-        return np.clip(self.calcpid(env_state), -10.0, 10.0)
+        return -np.clip(self.calcpid(env_state), -10.0, 10.0)

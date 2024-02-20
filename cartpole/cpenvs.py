@@ -37,9 +37,9 @@ _high = np.array([
 _high2 = np.concatenate([_high, _high[0:1]]) # Reuse cart pos limit for position deviation
 
 _norm = np.array([
-    _x_threshold,
+    1.6,
     4.0, # Cart speed
-    _theta_threshold_radians,
+    10 * 2 * math.pi / 360,
     2.0, # Pole angle velocity
 ],dtype=np.float32)
 _norm2 = np.concatenate([_norm, _norm[0:1]])
@@ -135,12 +135,15 @@ class _CartPoleCommon(gym.Env, abc.ABC):
     ) -> tuple[np.ndarray, float]:
         pass
 
+    def perform_simulation_step(self, action):
+        force = 10.0 if action == 1 else -10.0
+        self.innerstate = cartpole_simstep(self.innerstate, force)
+
     def step(
         self, action: Any
     ) -> tuple[Any, SupportsFloat, bool, bool, dict[str, Any]]:
         self.t = self.t + 1
-        force = 10.0 if action == 1 else -10.0
-        self.innerstate = cartpole_simstep(self.innerstate, force)
+        self.perform_simulation_step(action)
 
         terminated = check_terminate(self.innerstate)
         inner_reward = 1.0 if not terminated else 0.0
@@ -182,6 +185,17 @@ class StandardCartPoleEnv(_CartPoleCommon):
         self, inner_state: np.ndarray, inner_reward: np.ndarray
     ) -> tuple[np.ndarray, float]:
         return np.concatenate([inner_state, np.array([inner_state[0]])]), inner_reward
+    
+class StandardCartPoleEnvCont(StandardCartPoleEnv):
+    def __init__(self, use_normalized_state: bool = False) -> None:
+        super().__init__(use_normalized_state)
+        self.action_space = gym.spaces.Box(
+            low=-10.0, high=10.0, shape=(1,), dtype=np.float32
+        )
+
+    def perform_simulation_step(self, action):
+        force = np.clip(action, -10.0, 10.0)
+        self.innerstate = cartpole_simstep(self.innerstate, force)
 
 class RiskyCartPoleEnv(_CartPoleCommon):
     def calc_state_and_reward(
