@@ -56,7 +56,7 @@ def denormalize_state(norm_state: np.ndarray):
     elif norm_state.shape[0] == 5:
         return norm_state * _norm2
 
-def cartpole_simstep(state:np.ndarray, force:float):
+def cartpole_simstep(state:np.ndarray, force:float, disturbance_thetaacc:float=0.0):
     """
     Taken from gymnasium implementation
     """
@@ -64,6 +64,9 @@ def cartpole_simstep(state:np.ndarray, force:float):
     x, x_dot, theta, theta_dot = tuple(state)
     costheta = math.cos(theta)
     sintheta = math.sin(theta)
+
+    if isinstance(force, np.ndarray):
+        force = float(force[0])
 
     # For the interested reader:
     # https://coneural.org/florian/papers/05_cart_pole.pdf
@@ -73,6 +76,12 @@ def cartpole_simstep(state:np.ndarray, force:float):
     thetaacc = (_gravity * sintheta - costheta * temp) / (
         _length * (4.0 / 3.0 - _masspole * costheta**2 / _total_mass)
     )
+    #####
+    # Add turbulence
+    #####
+    thetaacc = thetaacc + disturbance_thetaacc
+    #####
+
     xacc = temp - _polemass_length * thetaacc * costheta / _total_mass
 
     if _kinematics_integrator == "euler":
@@ -86,7 +95,7 @@ def cartpole_simstep(state:np.ndarray, force:float):
         theta_dot = theta_dot + _tau * thetaacc
         theta = theta + _tau * theta_dot
 
-    return np.array((x, x_dot, theta, theta_dot), dtype=np.float32)
+    return np.array([x, x_dot, theta, theta_dot], dtype=np.float32)
 
 def check_terminate(state):
     x, x_dot, theta, theta_dot = tuple(state)
@@ -238,9 +247,9 @@ class MovingCartpoleEnv(_CartPoleCommon):
     def generate_setpoints(self):
         sp = np.zeros((501,))
 
-        t1 = random.randint(50, 150)  # Around t=100
-        t2 = random.randint(200, 300)  # Around t=250
-        t3 = random.randint(350, 450)  # Around t=400
+        t1 = random.randint(80, 120)  # Around t=100
+        t2 = random.randint(230, 270)  # Around t=250
+        t3 = random.randint(380, 420)  # Around t=400
 
         direction1 = random.choice([-1.0, 1.0])
         direction2 = -1.0 * direction1
@@ -253,3 +262,14 @@ class MovingCartpoleEnv(_CartPoleCommon):
         sp[t3:] = 0.0
 
         self.setpoints = sp
+
+class MovingCartpoleEnvEnvCont(MovingCartpoleEnv):
+    def __init__(self, use_normalized_state: bool = False) -> None:
+        super().__init__(use_normalized_state)
+        self.action_space = gym.spaces.Box(
+            low=-10.0, high=10.0, shape=(1,), dtype=np.float32
+        )
+
+    def perform_simulation_step(self, action):
+        force = np.clip(action, -10.0, 10.0)
+        self.innerstate = cartpole_simstep(self.innerstate, force)

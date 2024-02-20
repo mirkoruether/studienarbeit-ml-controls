@@ -27,7 +27,7 @@ class CartPoleAgentABC(abc.ABC):
         self,
         old_env_state: np.ndarray,
         new_env_state: np.ndarray,
-        action: int,
+        action: int|float,
         env_reward: float,
     ) -> None:
         pass
@@ -37,7 +37,7 @@ class ModelCartPoleAgent(CartPoleAgentABC):
     def __init__(self, model: sb_classes.BaseAlgorithm) -> None:
         self.model = model
 
-    def step(self, env_state: np.ndarray) -> int:
+    def step(self, env_state: np.ndarray) -> int|float:
         action, _ = self.model.predict(env_state, deterministic=True)
         return action
 

@@ -135,6 +135,7 @@ def lineplot(df, ep=None, incl_velo=False):
     else:
         trace("pole_ang_deg", 2)
 
+    fig.update_xaxes(range=(0,500))
     fig.update_xaxes(rangeslider_visible=True, row=4 if incl_velo else 2)
 
     if incl_velo:
@@ -151,6 +152,12 @@ def lineplot(df, ep=None, incl_velo=False):
         template="none",
         margin=dict(l=90, r=10, t=10, b=10),
         height=1200 if incl_velo else 800,
+        legend=dict(
+            orientation="h",
+            yanchor="top",
+            y=-0.02,
+            xanchor="center",
+            x=0.5)
     )
 
     #fig.update_layout(title_font_size=16)
