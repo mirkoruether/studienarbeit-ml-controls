@@ -2,6 +2,7 @@
 PID controller for cart pole
 """
 
+import math
 import numpy as np
 import pandas as pd
 
@@ -43,10 +44,13 @@ class PidAgent(cpagent.CartPoleAgentABC):
         self.controller_pole.reset()
         self.controller_cart.reset()
 
-    def calcpid(self, env_state: np.ndarray) -> float:
+    def get_target_value_pole_ang(self, env_state: np.ndarray):
+        return 0.0
+
+    def calc_pid(self, env_state: np.ndarray) -> float:
         delta_t = 0.02
 
-        error_pole = 0.0 - env_state[2]
+        error_pole = self.get_target_value_pole_ang(env_state) - env_state[2]
         error_cart = 0.0 - env_state[4]
 
         pid_pole = self.controller_pole.step(error_pole, delta_t)
@@ -55,10 +59,40 @@ class PidAgent(cpagent.CartPoleAgentABC):
         return pid_cart + pid_pole
 
     def step(self, env_state: np.ndarray) -> int:
-        pid = self.calcpid(env_state)
+        pid = self.calc_pid(env_state)
         action = 0 if pid >= 0 else 1
         return action
 
 class PidAgentCont(PidAgent):
     def step(self, env_state: np.ndarray) -> int:
-        return -np.clip(self.calcpid(env_state), -10.0, 10.0)
+        return -np.clip(self.calc_pid(env_state), -10.0, 10.0)
+
+class PidAgentMoving(PidAgent):
+    def __init__(self, 
+                 KPID_pole: tuple[float, float, float], 
+                 KPID_cart: tuple[float, float, float] = (0, 0, 0), 
+                 pos_threshold = 0.2, 
+                 ang_degrees=1.0) -> None:
+        super().__init__(KPID_pole, KPID_cart)
+        self.pos_threshold = pos_threshold
+        self.ang_degrees = ang_degrees
+
+    def get_target_value_pole_ang(self, env_state: np.ndarray):
+        posdelta = env_state[4]
+        if posdelta > self.pos_threshold:
+            return math.radians(-self.ang_degrees)
+        if posdelta < -self.pos_threshold:
+            return math.radians(self.ang_degrees)
+        return 0.0
+    
+class PidAgentMoving2(PidAgent):
+    def __init__(self, 
+                 KPID_pole: tuple[float, float, float], 
+                 KPID_cart: tuple[float, float, float] = (0, 0, 0), 
+                 factorA = 1.0) -> None:
+        super().__init__(KPID_pole, KPID_cart)
+        self.factorA = factorA
+
+    def get_target_value_pole_ang(self, env_state: np.ndarray):
+        posdelta = env_state[4]
+        return math.radians(-1.0 * self.factorA * posdelta)

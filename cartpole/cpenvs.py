@@ -24,7 +24,7 @@ _tau = 0.02  # seconds between state updates
 _kinematics_integrator = "euler"
 
 # Angle at which to fail the episode
-_theta_threshold_radians = 12 * 2 * math.pi / 360
+_theta_threshold_radians = 15 * 2 * math.pi / 360
 _x_threshold = 2.4
 
 
@@ -134,9 +134,9 @@ class _CartPoleCommon(gym.Env, abc.ABC):
         self.log[self.t, :] = np.concatenate([state, np.array([reward])])
 
         if self.use_normalized_state:
-            return normalize_state(state), {}
+            return np.array(normalize_state(state), dtype=np.float32), {}
         else:
-            return state, {}
+            return np.array(state, dtype=np.float32), {}
 
     @abc.abstractmethod
     def calc_state_and_reward(
@@ -163,8 +163,8 @@ class _CartPoleCommon(gym.Env, abc.ABC):
         self.log[self.t, :] = np.concatenate([state, np.array([reward])])
 
         if self.use_normalized_state:
-            return normalize_state(state), reward, terminated, truncated, {}
-        return state, reward, terminated, truncated, {}
+            return np.array(normalize_state(state), dtype=np.float32), reward, terminated, truncated, {}
+        return np.array(state, dtype=np.float32), reward, terminated, truncated, {}
 
     def render(self) -> None:
         return None
@@ -199,11 +199,11 @@ class StandardCartPoleEnvCont(StandardCartPoleEnv):
     def __init__(self, use_normalized_state: bool = False) -> None:
         super().__init__(use_normalized_state)
         self.action_space = gym.spaces.Box(
-            low=-10.0, high=10.0, shape=(1,), dtype=np.float32
+            low=-1.0, high=1.0, shape=(1,), dtype=np.float32
         )
 
     def perform_simulation_step(self, action):
-        force = np.clip(action, -10.0, 10.0)
+        force = np.clip(10.0 * action, -10.0, 10.0)
         self.innerstate = cartpole_simstep(self.innerstate, force)
 
 class RiskyCartPoleEnv(_CartPoleCommon):
@@ -247,19 +247,21 @@ class MovingCartpoleEnv(_CartPoleCommon):
     def generate_setpoints(self):
         sp = np.zeros((501,))
 
-        t1 = random.randint(80, 120)  # Around t=100
-        t2 = random.randint(230, 270)  # Around t=250
-        t3 = random.randint(380, 420)  # Around t=400
+        # t1 = random.randint(80, 120)  # Around t=100
+        # t2 = random.randint(230, 270)  # Around t=250
+        # t3 = random.randint(380, 420)  # Around t=400
 
         direction1 = random.choice([-1.0, 1.0])
-        direction2 = -1.0 * direction1
+        # direction2 = -1.0 * direction1
 
-        len1 = random.normalvariate(0.75, 0.2)
-        len2 = random.normalvariate(0.75, 0.2)
+        len1 = random.normalvariate(0.75, 0.1)
+        # len2 = random.normalvariate(0.75, 0.2)
 
-        sp[t1:t2] = direction1 * len1
-        sp[t2:t3] = direction2 * len2
-        sp[t3:] = 0.0
+        # sp[t1:t2] = direction1 * len1
+        # sp[t2:t3] = direction2 * len2
+        # sp[t3:] = 0.0
+
+        sp[100:] = direction1 * len1
 
         self.setpoints = sp
 
@@ -267,9 +269,9 @@ class MovingCartpoleEnvEnvCont(MovingCartpoleEnv):
     def __init__(self, use_normalized_state: bool = False) -> None:
         super().__init__(use_normalized_state)
         self.action_space = gym.spaces.Box(
-            low=-10.0, high=10.0, shape=(1,), dtype=np.float32
+            low=-1.0, high=1.0, shape=(1,), dtype=np.float32
         )
 
     def perform_simulation_step(self, action):
-        force = np.clip(action, -10.0, 10.0)
+        force = np.clip(10.0 * action, -10.0, 10.0)
         self.innerstate = cartpole_simstep(self.innerstate, force)
