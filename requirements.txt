@@ -18,4 +18,3 @@ scikit-learn
 tensorboard
 torch-tb-profiler
 optuna
-optuna-dashboard
