@@ -1,0 +1,3 @@
+[submodule "python_libs/ilqr"]
+	path = python_libs/ilqr
+	url = https://github.com/anassinator/ilqr.git
