@@ -18,3 +18,5 @@ scikit-learn
 tensorboard
 torch-tb-profiler
 optuna
+pysindy
+do_mpc

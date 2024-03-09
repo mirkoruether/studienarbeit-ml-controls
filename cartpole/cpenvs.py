@@ -127,11 +127,11 @@ class _CartPoleCommon(gym.Env, abc.ABC):
 
         self.innerstate = self.np_random.uniform(-0.05, 0.05, size=(4,))
         self.t = 0
-        self.log = np.zeros((501, 6))
+        self.log = np.zeros((501, 7))
 
         state, reward = self.calc_state_and_reward(self.innerstate, nan)
 
-        self.log[self.t, :] = np.concatenate([state, np.array([reward])])
+        self.log[self.t, :] = np.concatenate([state, np.array([0.0, reward])])
 
         if self.use_normalized_state:
             return np.array(normalize_state(state), dtype=np.float32), {}
@@ -144,15 +144,16 @@ class _CartPoleCommon(gym.Env, abc.ABC):
     ) -> tuple[np.ndarray, float]:
         pass
 
-    def perform_simulation_step(self, action):
-        force = 10.0 if action == 1 else -10.0
-        self.innerstate = cartpole_simstep(self.innerstate, force)
+    def calc_force(self, action):
+        return 10.0 if action == 1 else -10.0       
 
     def step(
         self, action: Any
     ) -> tuple[Any, SupportsFloat, bool, bool, dict[str, Any]]:
         self.t = self.t + 1
-        self.perform_simulation_step(action)
+
+        force = self.calc_force(action)
+        self.innerstate = cartpole_simstep(self.innerstate, force)
 
         terminated = check_terminate(self.innerstate)
         inner_reward = 1.0 if not terminated else 0.0
@@ -160,7 +161,8 @@ class _CartPoleCommon(gym.Env, abc.ABC):
 
         state, reward = self.calc_state_and_reward(self.innerstate, inner_reward)
 
-        self.log[self.t, :] = np.concatenate([state, np.array([reward])])
+        force = 10.0 if action == 1 else -10.0
+        self.log[self.t, :] = np.concatenate([state, np.array([force, reward])])
 
         if self.use_normalized_state:
             return np.array(normalize_state(state), dtype=np.float32), reward, terminated, truncated, {}
@@ -181,6 +183,7 @@ class _CartPoleCommon(gym.Env, abc.ABC):
                 "pole_ang",
                 "pole_vel",
                 "pos_deviation",
+                "force",
                 "reward",
             ],
         )
@@ -202,9 +205,8 @@ class StandardCartPoleEnvCont(StandardCartPoleEnv):
             low=-1.0, high=1.0, shape=(1,), dtype=np.float32
         )
 
-    def perform_simulation_step(self, action):
-        force = np.clip(10.0 * action, -10.0, 10.0)
-        self.innerstate = cartpole_simstep(self.innerstate, force)
+    def calc_force(self, action):
+        return np.clip(10.0 * action, -10.0, 10.0)
 
 class RiskyCartPoleEnv(_CartPoleCommon):
     def calc_state_and_reward(
@@ -272,6 +274,5 @@ class MovingCartpoleEnvEnvCont(MovingCartpoleEnv):
             low=-1.0, high=1.0, shape=(1,), dtype=np.float32
         )
 
-    def perform_simulation_step(self, action):
-        force = np.clip(10.0 * action, -10.0, 10.0)
-        self.innerstate = cartpole_simstep(self.innerstate, force)
+    def calc_force(self, action):
+        return np.clip(10.0 * action, -10.0, 10.0)
