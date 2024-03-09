@@ -24,7 +24,7 @@ _tau = 0.02  # seconds between state updates
 _kinematics_integrator = "euler"
 
 # Angle at which to fail the episode
-_theta_threshold_radians = 15 * 2 * math.pi / 360
+_theta_threshold_radians = 30 * 2 * math.pi / 360
 _x_threshold = 2.4
 
 

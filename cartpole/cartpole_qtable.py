@@ -11,10 +11,10 @@ import cpagent
 class QTableAgent(cpagent.CartPoleAgentABC):
     def __init__(self, alpha=0.1, epsilon=0.9, gamma=0.9) -> None:
         self.bins = [
-            np.array([-0.1, 0.0, 0.1]),  # Cartpos
+            np.array([-0.5, 0.0, 0.5]),  # Cartpos
             np.array([-0.5, 0.0, 0.5]),  # Cartvel
-            np.array([-0.03, -0.02, -0.01, 0.0, 0.01, 0.02, 0.03]),  # Poleang
-            np.array([-0.6, -0.2, 0.0, 0.2, 0.6]),  # Polevel
+            np.deg2rad(np.array([-3.0, -2.0, -1.0, 0.0, 1.0, 2.0, 3.0])),  # Poleang
+            np.deg2rad(np.array([-30, -10, 0.0, 10, 30])),  # Polevel
             np.array([]), # Pos deviation => ignore
         ]
 
@@ -27,7 +27,7 @@ class QTableAgent(cpagent.CartPoleAgentABC):
     def init_qtable(self):
         shape = (self.get_state_size(), 2)
         # self.qtable = nprnd.normal(0.1, 0.02, shape)
-        self.qtable = np.zeros(shape)
+        self.qtable = np.ones(shape)
 
     def idx(self, env_state):
         factor = 1
@@ -74,7 +74,7 @@ class QTableAgent(cpagent.CartPoleAgentABC):
         new_state_idx = self.idx(new_env_state)
         old_val = self.qtable[old_state_idx, action]
 
-        new_val = old_val + self.alpha * (
+        new_val = (1- self.alpha) * old_val + self.alpha * (
             env_reward + self.gamma * np.max(self.qtable[new_state_idx, :])
         )
 
