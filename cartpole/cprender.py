@@ -141,11 +141,11 @@ def lineplot(df, ep=None, incl_velo=False):
     if incl_velo:
         fig.update_yaxes(row=1, col=1, range=(-cpenvs._norm[0], cpenvs._norm[0]))
         fig.update_yaxes(row=2, col=1, range=(-cpenvs._norm[1], cpenvs._norm[1]))
-        fig.update_yaxes(row=3, col=1, range=(np.rad2deg(-cpenvs._norm[2]), np.rad2deg(cpenvs._norm[2])))
+        fig.update_yaxes(row=3, col=1, range=(-15, 15))
         fig.update_yaxes(row=4, col=1, range=(np.rad2deg(-cpenvs._norm[3]), np.rad2deg(cpenvs._norm[3])))
     else:
         fig.update_yaxes(row=1, col=1, range=(-cpenvs._norm[0], cpenvs._norm[0]))
-        fig.update_yaxes(row=2, col=1, range=(np.rad2deg(-cpenvs._norm[2]), np.rad2deg(cpenvs._norm[2])))
+        fig.update_yaxes(row=2, col=1, range=(-15, 15))
 
     fig.update_layout(
         hovermode="x unified",
